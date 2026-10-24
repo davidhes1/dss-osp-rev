@@ -901,6 +901,26 @@ body.dist-comic .rcard header .catchip { background: #FFFFFF; color: #111111; bo
 .dist-soc .hero2 { background-image: none !important; }
 .dist-edit .lede, .dist-comic .lede { border-left: 0; padding-left: 0; }
 .dist-blue .lede { border-left-color: var(--accent); }
+/* start here and search */
+.start { margin: 16px 0; padding: 14px; border: 2px solid var(--accent); border-radius: 14px; background: var(--surface); }
+.start-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.start-h h2 { margin: 0; } .start-h span { font-weight: 700; color: var(--muted); }
+.start ol { list-style: none; padding: 0; margin: 10px 0 6px; display: grid; gap: 8px; }
+.start li a { display: flex; gap: 12px; align-items: center; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); text-decoration: none; background: var(--surface2); }
+.start .sn { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-hue); font-weight: 800; }
+.start li.done .sn { background: var(--green-tint); border: 2px solid var(--green); color: var(--ink); }
+.start li.done .sn svg { stroke: var(--ink); }
+.start .st { display: flex; flex-direction: column; } .start .st small { color: var(--muted); font-size: .88rem; }
+.start li.done b { text-decoration: line-through; }
+.hsearch { display: flex; gap: 8px; margin: 14px 0; }
+.hsearch input { flex: 1; min-width: 0; min-height: 48px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sresults { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.sresults a { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); text-decoration: none; }
+.sresults a:hover { border-color: var(--line-d); }
+.stype { align-self: flex-start; font-size: .75rem; font-weight: 800; letter-spacing: .04em; padding: 1px 8px; border-radius: 99px; background: var(--surface2); color: var(--ink); }
+.ssnip { font-size: .92rem; color: var(--muted); }
+.ssnip mark { background: none; color: var(--ink); font-weight: 800; text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; }
 
 </style>
 </head>
@@ -3581,7 +3601,7 @@ const STAMPS = {"ok": "data:image/webp;base64,UklGRnRfAABXRUJQVlA4WAoAAAAQAAAAKw
   }
 
   /* ---------- storage ---------- */
-  const OBJ = ['drill', 'sets', 'recall', 'samp', 'mockx', 'mockt', 'tick', 'hunt', 'huntOpen', 'check', 'fc', 'act', 'plan', 'mdates', 'tdates', 'mockm', 'ans', 'ed', 'seen', 'a11y'];
+  const OBJ = ['drill', 'sets', 'recall', 'samp', 'mockx', 'mockt', 'start', 'tick', 'hunt', 'huntOpen', 'check', 'fc', 'act', 'plan', 'mdates', 'tdates', 'mockm', 'ans', 'ed', 'seen', 'a11y'];
   const blank = keepA11y => { const o = { me: '', stamps: true }; OBJ.forEach(k => { o[k] = {}; }); if (keepA11y) o.a11y = keepA11y; return o; };
   let P = blank();
   function load() {
@@ -3733,6 +3753,59 @@ const STAMPS = {"ok": "data:image/webp;base64,UklGRnRfAABXRUJQVlA4WAoAAAAQAAAAKw
     return `<section class="story" aria-label="Issue 7 as a storyboard"><h2>Issue 7 in four panels</h2><div class="panels">${P4.map(p => `<figure><figcaption>${esc(p[0])}</figcaption><svg viewBox="0 0 170 120" aria-hidden="true">${p[1]}</svg></figure>`).join('')}<figure class="verdict"><figcaption>The verdict.</figcaption><span class="vstamp">Possible<br>cyber attack</span></figure></div><p class="bubble">“Nobody works at 3am. Reset the password, turn on MFA and keep the log as evidence.”</p><p>Now read every issue the same way: find the clue, then decide.</p></section>`;
   }
 
+  /* ---------- start here ---------- */
+  function startSteps() {
+    return [
+      ['project', 'See how the project works', 'Three tasks, 99 marks, and what each one asks of you.', '#/project', !!P.start.project],
+      ['planner', 'Set up your planner', 'Check your mock dates and see this week’s plan.', '#/planner', !!P.start.planner],
+      ['practice', 'Do your first practice set', 'A few minutes sorting threats, vulnerabilities, assets and impacts.', '#/practice/1a-parts', Object.keys(P.sets).length > 0]
+    ];
+  }
+  function startHtml() {
+    const st = startSteps(), n = st.filter(s => s[4]).length;
+    if (P.start.hide || n === st.length) return '';
+    return `<section class="start" aria-label="Start here"><div class="start-h"><h2>Start here</h2><span>${n} of 3 done</span></div><ol>${st.map((s, i) => `<li class="${s[4] ? 'done' : ''}"><a href="${s[3]}"><span class="sn">${s[4] ? iconSvg('check', 18) : i + 1}</span><span class="st"><b>${esc(s[1])}</b><small>${esc(s[2])}</small></span></a></li>`).join('')}</ol><button class="linkbtn small" data-act="starthide">Hide this</button></section>`;
+  }
+  /* ---------- search ---------- */
+  let SIDX = null;
+  const strip = h => String(h).replace(/<svg[\s\S]*?<\/svg>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/\{\{[^}]+\}\}/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, '’').replace(/\s+/g, ' ').trim();
+  function buildIndex() {
+    const out = [], add = (type, title, url, text) => out.push({ type, title, url, text: strip(text), lt: title.toLowerCase() });
+    ACT_ORDER.forEach(id => { const a = ACTS[id]; if (TABS[id]) TABS[id].forEach(t => { let body = ''; try { body = guideBody(id, t[0]); } catch (e) { body = ''; } add('Guide', a.label + ' ' + a.name + ': ' + t[1], actHref(id) + (t[0] ? '/' + t[0] : ''), body); }); else add('Guide', a.label + ' ' + a.name, actHref(id), a.wants || ''); });
+    KNOW.forEach(t => { add('Topic', t.title, '#/topic/' + t.id, t.lede + ' ' + t.sec.map(s => s[0] + ' ' + s[1]).join(' ') + ' ' + t.terms.map(x => x.join(' ')).join(' ')); t.terms.forEach(x => add('Key term', x[0], '#/topic/' + t.id, x[1] + ' From: ' + t.title + '.')); });
+    SPEC.forEach(s => add('Spec point', s[0] + ' ' + s[1], K_OF[s[0]] ? '#/topic/' + K_OF[s[0]] : '#/checklist', ICAN[s[0]] || ''));
+    SETS.filter(s => !s.k).forEach(s => add(s.pt ? 'Drill' : 'Practice', s.title, '#/practice/' + s.id, s.items.map(q => q.q || '').join(' ')));
+    ['library', 'physio', 'climbing'].forEach(k => SCEN[k] && add('Scenario', SCEN[k].name, '#/scenario/' + k, SCEN[k].brief.join(' ') + ' ' + SCEN[k].network.join(' ')));
+    SAMPLES.forEach(S => add('Sample OSP', 'Sample OSP ' + S.id + ': ' + SCEN[S.scen].name, '#/sample/' + S.id + '/1', SCEN[S.scen].brief.join(' ')));
+    [['Planner', '#/planner', 'Your weekly plan, tasks and mock dates.'], ['Mock results', '#/mocks', 'Record mock marks, bands and your weakest rows.'], ['Assessment days', '#/days', 'Timing plans, session lengths, file names, saving as PDF and organising evidence.'], ['Flashcards', '#/flash', 'Key terms on cards that come back before you forget them.'], ['Spec checklist', '#/checklist', 'Rate every spec point red, amber or green.'], ['Week by week', '#/weeks', 'The scheme of work and what each week covers.'], ['How the project works', '#/project', 'The three tasks, marks, hours and how they connect.'], ['Packet Tracer drills', '#/drills', 'Command practice for VLANs, trunks, routing, ACLs and wireless.']].forEach(p => add('Page', p[0], p[1], p[2]));
+    return out;
+  }
+  const sWords = q => [...new Set(String(q).toLowerCase().split(/[^a-z0-9.]+/).filter(w => w.length > 1 && !['amp', 'lt', 'gt', 'quot'].includes(w)))];
+  function searchRun(q) {
+    const words = sWords(q); if (!words.length) return [];
+    SIDX = SIDX || buildIndex();
+    const res = [];
+    SIDX.forEach(e => { const tx = e.text.toLowerCase(); let sc = 0; for (const w of words) { const inT = e.lt.includes(w), c = tx.split(w).length - 1; if (!inT && !c) return; sc += (inT ? 10 : 0) + Math.min(c, 5); } if (e.type === 'Key term' && e.lt === String(q).toLowerCase().trim()) sc += 40; if (e.type === 'Topic') sc += 2; res.push([sc, e]); });
+    return res.sort((a, b) => b[0] - a[0]).slice(0, 25).map(x => x[1]);
+  }
+  function snippet(e, words) {
+    const tx = e.text, lo = tx.toLowerCase(); let i = -1; for (const w of words) { i = lo.indexOf(w); if (i >= 0) break; }
+    const s = Math.max(0, i - 60); let h = esc((s > 0 ? '…' : '') + tx.slice(s, s + 170) + (tx.length > s + 170 ? '…' : ''));
+    words.forEach(w => { h = h.replace(new RegExp('(' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'), '<mark>$1</mark>'); });
+    return h;
+  }
+  function resultsHtml(q) {
+    const words = sWords(q); if (!words.length) return `<p>Type a word or two: a key term, a spec point number, a Windows tool or a Packet Tracer command. Everything in the portal is searched: the guides for every task, the knowledge topics, key terms, spec points, practice sets, drills, scenarios and samples.</p><p class="small muted">Try one of these:</p><p class="filters">${['VLAN', 'ransomware', '2.16', 'backup schedule', 'CVSS', 'access control list', 'evaluation'].map(w => `<a href="#/search/${encodeURIComponent(w)}">${w}</a>`).join('')}</p>`;
+    const r = searchRun(q);
+    return r.length ? `<p class="small muted" aria-live="polite">${r.length === 25 ? 'Top 25 results' : r.length + ' result' + (r.length === 1 ? '' : 's')}</p><ul class="sresults">${r.map(e => `<li><a href="${e.url}"><span class="stype">${e.type}</span><b>${esc(e.title)}</b><span class="ssnip">${snippet(e, words)}</span></a></li>`).join('')}</ul>` : `<p aria-live="polite">Nothing found for “${esc(q)}”. Try a shorter or different word.</p>`;
+  }
+  const searchBox = (v, id) => `<div class="hsearch" role="search"><label for="${id}" class="sr">Search the portal</label><input id="${id}" class="search" type="search" placeholder="Search guides, topics and key terms" value="${esc(v || '')}" autocomplete="off" data-search="${id === 'sq' ? 'live' : 'go'}"><button class="btn primary" data-act="gosearch" data-for="${id}">Search</button></div>`;
+  function viewSearch(q) {
+    q = q || '';
+    setView(`<div class="wrap">${crumbs([['Home', '#/'], ['Search']])}${banner('a6', 'eye', 'Guides, knowledge topics, key terms, spec points and practice', 'Search')}${searchBox(q, 'sq')}<div id="sres">${resultsHtml(q)}</div></div>`, 'Search');
+    const i = $('#sq'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+  }
+
   function viewHome() {
     const nx = upcoming(2), ws = weekStart(dayNum()), tasks = planTasks(ws, planFor(ws)), tdone = tasks.filter(x => x.done).length, sk = streak();
     const missing = [1, 2, 3].filter(n => !mockDate(n)).length;
@@ -3747,7 +3820,7 @@ const STAMPS = {"ok": "data:image/webp;base64,UklGRnRfAABXRUJQVlA4WAoAAAAQAAAAKw
         ${missing ? `<p class="hero-note">Mock dates not set yet. <a href="#/planner/dates">Add them in the planner</a> when your teacher gives them to you.</p>` : ''}
         <div class="btnrow"><a class="btn hero-cta" href="#/task/${focusTask()}">Open Task ${focusTask()}</a><a class="btn hero-ghost" href="#/project">How the project works</a></div>
       </div></section>
-      ${socHtml(tasks)}
+      ${startHtml()}${searchBox('', 'hq')}${socHtml(tasks)}
       <h2 class="deco">The three tasks</h2>
       <div class="areagrid tgrid">${[1, 2, 3].map(tile).join('')}</div>
       <h2 class="deco">Everything else</h2>
@@ -3941,6 +4014,7 @@ const STAMPS = {"ok": "data:image/webp;base64,UklGRnRfAABXRUJQVlA4WAoAAAAQAAAAKw
       ${banner('a7', 'bulb', f ? 'Topics that feed ' + ACTS[f].label + ' ' + esc(ACTS[f].name) : KNOW.length + ' topics, ' + KNOW.reduce((s, t) => s + t.spec.length, 0) + ' of the 61 spec points so far', 'Knowledge')}
       <p>The tasks are marked on applying knowledge, so every topic ends with <b>Apply it</b>: where it earns marks in each task. Tap an activity to see only the topics it needs.</p>
       ${!f ? fig('caFlow', 'The totals are Pearson’s: the marks for each content area’s performance outcome, and the marks for each task. The ribbons estimate how each area’s marks spread across the tasks, based on which tasks use each spec point.') : ''}
+      ${searchBox('', 'hq')}
       <div class="filters" role="navigation" aria-label="Show topics for"><a href="#/knowledge"${!f ? ' aria-current="page"' : ''}>All</a>${ACT_ORDER.map(id => `<a href="#/knowledge/${id}"${f === id ? ' aria-current="page"' : ''}>${ACTS[id].label}</a>`).join('')}</div>
       <div class="statrow"><div class="stat"><b>${sec}<small> of ${KNOW.length}</small></b><span>topics secure</span></div><div class="stat"><b>${Object.keys(P.check).filter(k => SPEC.some(s => s[0] === k)).length}<small> of 61</small></b><span>spec points rated</span></div></div>
       <h2>Topics</h2><ul class="toplist ktopics">${topics.map(topicCard).join('') || '<li class="small muted">No topics for this activity yet.</li>'}</ul>
@@ -4587,7 +4661,7 @@ const STAMPS = {"ok": "data:image/webp;base64,UklGRnRfAABXRUJQVlA4WAoAAAAQAAAAKw
     const m = String(code).match(/^OSP1\.([A-Za-z0-9_-]+)\.([a-z0-9]+)$/); if (!m) return null;
     try { const json = new TextDecoder().decode(unb64u(m[1])); if (hash(json) !== m[2]) return null; const o = JSON.parse(json); return o && o.v === 1 && Array.isArray(o.a) && o.a.length === ACT_ORDER.length && Array.isArray(o.m) && o.m.length === 3 && Array.isArray(o.ck) ? o : null; } catch (e) { return null; }
   }
-  const KEYS = ['drill', 'sets', 'recall', 'samp', 'ed', 'mockx', 'mockt', 'tick', 'hunt', 'huntOpen', 'check', 'fc', 'act', 'plan', 'mdates', 'mockm', 'ans', 'seen'];
+  const KEYS = ['drill', 'sets', 'recall', 'samp', 'ed', 'mockx', 'mockt', 'start', 'tick', 'hunt', 'huntOpen', 'check', 'fc', 'act', 'plan', 'mdates', 'mockm', 'ans', 'seen'];
   async function makeBackup(withAnswers) {
     const o = { v: 1, me: P.me || '' };
     KEYS.forEach(k => { o[k] = P[k]; });
@@ -4804,6 +4878,7 @@ const STAMPS = {"ok": "data:image/webp;base64,UklGRnRfAABXRUJQVlA4WAoAAAAQAAAAKw
   }
   function route() {
     setDistrict();
+    { const a0 = (location.hash.replace(/^#\/?/, '').split('/')[0]) || ''; if ((a0 === 'project' || a0 === 'planner') && !P.start[a0]) { P.start[a0] = Date.now(); save(); } }
     applyA11y();
     const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
     const [a, b] = parts;
@@ -4815,6 +4890,7 @@ const STAMPS = {"ok": "data:image/webp;base64,UklGRnRfAABXRUJQVlA4WAoAAAAQAAAAKw
     if (a === 'scenario') return viewScenario(b);
     if (a === 'drills') return viewDrills();
     if (a === 'mocks') return viewMocks(b);
+    if (a === 'search') return viewSearch(b ? decodeURIComponent(b) : '');
     if (a === 'weeks') return viewWeeks();
     if (a === 'days') return viewDays();
     if (a === 'flash') return viewFlash(b);
@@ -4837,6 +4913,8 @@ const STAMPS = {"ok": "data:image/webp;base64,UklGRnRfAABXRUJQVlA4WAoAAAAQAAAAKw
     if (QZ && ['opt', 'spot', 'place', 'unplace', 'qcheck', 'qnext', 'qretry', 'qagain'].includes(act) && quizAct(act, el)) return;
     if (act === 'wrisk') { const w = el.closest('.wrisk'); w.dataset[el.dataset.k] = el.dataset.v; w.querySelectorAll('[data-k="' + el.dataset.k + '"]').forEach(b => b.setAttribute('aria-pressed', String(b === el))); updRisk(w); return; }
     if (act === 'term') { termToggle(el); return; }
+    if (act === 'starthide') { P.start.hide = Date.now(); save(); const y = window.scrollY; route(); window.scrollTo(0, y); return; }
+    if (act === 'gosearch') { const i = $('#' + el.dataset.for), v = i ? i.value.trim() : ''; if (el.dataset.for === 'sq') { $('#sres').innerHTML = resultsHtml(v); history.replaceState(null, '', '#/search/' + encodeURIComponent(v)); } else location.hash = '#/search/' + encodeURIComponent(v); return; }
     if (act === 'blband') { const sec = el.closest('.bl'), f = FOCUS[el.dataset.row], b = +el.dataset.b, d = sec.querySelector('.bl-desc'); sec.querySelectorAll('[data-act="blband"]').forEach(x => x.setAttribute('aria-pressed', String(x === el))); d.className = 'bl-desc b' + b; d.innerHTML = markPhrases(f.b[b - 1], BL[el.dataset.row] && BL[el.dataset.row].hi[b - 1]); return; }
     if (act === 'kreveal') { const m = $('#km' + el.dataset.k); if (m) { m.hidden = !m.hidden; el.setAttribute('aria-expanded', String(!m.hidden)); el.textContent = m.hidden ? 'Show the model answer' : 'Hide the model answer'; } return; }
     if (act === 'krate') { const r = P.recall[el.dataset.id] = P.recall[el.dataset.id] || {}; r[el.dataset.k] = +el.dataset.v; P.seen['r-' + el.dataset.id] = Date.now(); logAct('recall'); save(); const y = window.scrollY; viewTopic(el.dataset.id, 'recall'); window.scrollTo(0, y); const m = $('#km' + el.dataset.k); if (m) { m.hidden = false; const bt = document.querySelector('[data-act="kreveal"][data-k="' + el.dataset.k + '"]'); if (bt) { bt.textContent = 'Hide the model answer'; bt.setAttribute('aria-expanded', 'true'); } } const f = document.querySelector('[data-act="krate"][data-k="' + el.dataset.k + '"][data-v="' + el.dataset.v + '"]'); if (f) f.focus({ preventScroll: true }); return; }
@@ -4869,12 +4947,13 @@ const STAMPS = {"ok": "data:image/webp;base64,UklGRnRfAABXRUJQVlA4WAoAAAAQAAAAKw
     if (el.dataset && 'stamps' in el.dataset) { P.stamps = el.checked; save(); return; }
     if (el.dataset && el.dataset.a11y) { P.a11y = P.a11y || {}; P.a11y[el.dataset.a11y] = el.type === 'checkbox' ? el.checked : el.value; save(); applyA11y(); }
   });
-  app.addEventListener('input', e => { const el = e.target; if (el.dataset && ['reg', 'sur', 'ini'].includes(el.dataset.ed)) { P.ed[el.dataset.ed] = el.value; save(); const reg = (P.ed.reg || '').trim(), tail = (reg || 'REGNO') + '_' + ((P.ed.sur || '').trim() || 'Surname') + '_' + ((P.ed.ini || '').trim().slice(0, 1).toUpperCase() || 'X'); app.querySelectorAll('.fnames code').forEach((c, i) => { c.textContent = FILES[i][1] + '_' + tail + '.' + FILES[i][2]; }); return; } if (el.dataset && el.dataset.act === 'wcvss') { updCvss(el); return; } if (el.dataset && el.dataset.rans) { P.ans['r-' + el.dataset.rans + '-' + el.dataset.k] = el.value; save(); return; } if (QZ && el.id === 'cmdin' && !QZ.checked) { QZ.resp = el.value; const b = $('[data-act="qcheck"]'); if (b) b.disabled = !canCheck(); } });
+  app.addEventListener('keydown', e => { const el = e.target; if (e.key === 'Enter' && el.dataset && el.dataset.search) { e.preventDefault(); const b = app.querySelector('[data-act="gosearch"][data-for="' + el.id + '"]'); if (b) b.click(); } });
+  app.addEventListener('input', e => { const el = e.target; if (el.dataset && el.dataset.search === 'live') { const v = el.value; $('#sres').innerHTML = resultsHtml(v); history.replaceState(null, '', '#/search/' + encodeURIComponent(v)); return; } if (el.dataset && ['reg', 'sur', 'ini'].includes(el.dataset.ed)) { P.ed[el.dataset.ed] = el.value; save(); const reg = (P.ed.reg || '').trim(), tail = (reg || 'REGNO') + '_' + ((P.ed.sur || '').trim() || 'Surname') + '_' + ((P.ed.ini || '').trim().slice(0, 1).toUpperCase() || 'X'); app.querySelectorAll('.fnames code').forEach((c, i) => { c.textContent = FILES[i][1] + '_' + tail + '.' + FILES[i][2]; }); return; } if (el.dataset && el.dataset.act === 'wcvss') { updCvss(el); return; } if (el.dataset && el.dataset.rans) { P.ans['r-' + el.dataset.rans + '-' + el.dataset.k] = el.value; save(); return; } if (QZ && el.id === 'cmdin' && !QZ.checked) { QZ.resp = el.value; const b = $('[data-act="qcheck"]'); if (b) b.disabled = !canCheck(); } });
   app.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'cmdin' && QZ) { e.preventDefault(); if (!QZ.checked && canCheck()) quizAct('qcheck'); else if (QZ.checked) quizAct('qnext'); } });
   window.addEventListener('hashchange', route);
   route();
 
-  window.OSP = { DIST: districtFor, READY: n => readiness(n), WIS: WISSUES, CATS, SAMP: SAMPLES, P: () => P, KEY, W: { level, cvssBand, caFlowMatrix }, TERMS: () => TERMS, Q: { prep, mark, cmdOk, normCmd, KW, correctText }, SETS, KNOW, topicState: id => topicState(K_BY[id]), stampHtml: (a, b, c) => stampHtml(a, b, c), shuffle, events, upcoming, phases, focusTask, planTasks, planFor, FL: { dayNum, weekStart }, SH: { makeCode, readCode, makeBackup, readBackup, summary }, TASKS, ACTS, ACT_ORDER, FOCUS, SPEC, logAct };
+  window.OSP = { SEARCH: q => searchRun(q).map(e => [e.type, e.title, e.url]), DIST: districtFor, READY: n => readiness(n), WIS: WISSUES, CATS, SAMP: SAMPLES, P: () => P, KEY, W: { level, cvssBand, caFlowMatrix }, TERMS: () => TERMS, Q: { prep, mark, cmdOk, normCmd, KW, correctText }, SETS, KNOW, topicState: id => topicState(K_BY[id]), stampHtml: (a, b, c) => stampHtml(a, b, c), shuffle, events, upcoming, phases, focusTask, planTasks, planFor, FL: { dayNum, weekStart }, SH: { makeCode, readCode, makeBackup, readBackup, summary }, TASKS, ACTS, ACT_ORDER, FOCUS, SPEC, logAct };
 })();
 
 </script>
